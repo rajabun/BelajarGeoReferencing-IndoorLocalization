@@ -53,7 +53,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
     {
         //radius 100 itu sampe ke the breeze dan unilever
         let geofenceRegionCenter = CLLocationCoordinate2DMake(-6.3023, 106.6522);
-        let geofenceRegion = CLCircularRegion(center: geofenceRegionCenter, radius: 100, identifier: "CurrentLocation");
+        let geofenceRegion = CLCircularRegion(center: geofenceRegionCenter, radius: 50, identifier: "CurrentLocation");
         geofenceRegion.notifyOnExit = true;
         geofenceRegion.notifyOnEntry = true;
         self.locationManager.startMonitoring(for: geofenceRegion)
@@ -63,7 +63,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         let mapRegion = MKCoordinateRegion(center: geofenceRegionCenter, span: span)
         self.tampilanPeta.setRegion(mapRegion, animated: true)
         
-        let regionCircle = MKCircle(center: geofenceRegionCenter, radius: 400)
+        let regionCircle = MKCircle(center: geofenceRegionCenter, radius: 50)
         self.tampilanPeta.addOverlay(regionCircle)
         self.tampilanPeta.showsUserLocation = true;
     }
