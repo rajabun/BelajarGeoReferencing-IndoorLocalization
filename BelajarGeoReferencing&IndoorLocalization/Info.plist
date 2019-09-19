@@ -38,6 +38,8 @@
 	<string>This app will always use your location data</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app will use your location data</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>This app will use Face ID</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

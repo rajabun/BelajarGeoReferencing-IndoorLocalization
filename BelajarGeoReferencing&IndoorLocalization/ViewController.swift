@@ -10,6 +10,7 @@ import UIKit
 import MapKit
 import CoreLocation
 import UserNotifications
+import LocalAuthentication
 
 class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate
 {
@@ -25,19 +26,42 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
     let EXITED_REGION_MESSAGE = "Sampai Jumpa Kembali"
     let EXITED_REGION_NOTIFICATION_ID = "ExitedRegionNotification"
     
+    //FACE ID STEP 1
+    var context = LAContext()
+    
+    /// The current authentication state.
+    var state = AuthenticationState.loggedout
+    
     override func viewDidLoad()
     {
         super.viewDidLoad()
         self.locationManager.requestAlwaysAuthorization()
         self.locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        tampilanPeta.showsUserLocation = true
         centerViewOnUserLocation()
         locationManager.startUpdatingLocation()
         
         self.tampilanPeta.delegate = self
+        tampilanPeta.showsUserLocation = true
+        
         let center = UNUserNotificationCenter.current()
         center.requestAuthorization(options: [.badge, .alert, .sound]) { (granted, error) in }
+        
+        //FACE ID STEP 3
+        
+        // The biometryType, which affects this app's UI when state changes, is only meaningful
+        //  after running canEvaluatePolicy. But make sure not to run this test from inside a
+        //  policy evaluation callback (for example, don't put next line in the state's didSet
+        //  method, which is triggered as a result of the state change made in the callback),
+        //  because that might result in deadlock.
+        context.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+        
+        // Set the initial app state. This impacts the initial state of the UI as well.~
+        state = .loggedout
+        
+        //FACE ID STEP 6
+        faceidTriggered()
+        
     }
     
     func centerViewOnUserLocation()
@@ -52,10 +76,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
     func setUpGeofenceForPlayaGrandeBeach()
     {
         //radius 100 itu sampe ke the breeze dan unilever
-        let geofenceRegionCenter = CLLocationCoordinate2DMake(-6.3023, 106.6522);
-        let geofenceRegion = CLCircularRegion(center: geofenceRegionCenter, radius: 50, identifier: "CurrentLocation");
-        geofenceRegion.notifyOnExit = true;
-        geofenceRegion.notifyOnEntry = true;
+        let geofenceRegionCenter = CLLocationCoordinate2DMake(-6.3023, 106.6522)
+        let geofenceRegion = CLCircularRegion(center: geofenceRegionCenter, radius: 50, identifier: "CurrentLocation")
+        geofenceRegion.notifyOnExit = true
+        geofenceRegion.notifyOnEntry = true
         self.locationManager.startMonitoring(for: geofenceRegion)
         
         //Buat tampilan di petanya
@@ -137,5 +161,63 @@ class ViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDele
         overlayRenderer.fillColor = UIColor(red: 0.0/255.0, green: 203.0/255.0, blue: 208.0/255.0, alpha: 0.7)
         return overlayRenderer
     }
+    
+    
+    //FACE ID STEP 5
+    func faceidTriggered()
+    {
+        //Part 1
+        if state == .loggedin
+        {
+            // Log out immediately.
+            state = .loggedout
+            
+        }
+        else
+        {
+            // Get a fresh context for each login. If you use the same context on multiple attempts
+            //  (by commenting out the next line), then a previously successful authentication
+            //  causes the next policy evaluation to succeed without testing biometry again.
+            //  That's usually not what you want.
+            context = LAContext()
+            context.localizedCancelTitle = "Enter Username/Password"
+            
+            // First check if we have the needed hardware support.
+            var error: NSError?
+            if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error)
+            {
+                let reason = "Log in to your account"
+                context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason ) { success, error in
+                    
+                    if success
+                    {
+                        // Move to the main thread because a state update triggers UI changes.
+                        DispatchQueue.main.async
+                        { [unowned self] in
+                            self.state = .loggedin
+                        }
+                    }
+                    else
+                    {
+                        print(error?.localizedDescription ?? "Failed to authenticate")
+                        // Fall back to a asking for username and password.
+                        // ...
+                    }}
+            }
+            else
+            {
+                print(error?.localizedDescription ?? "Can't evaluate policy")
+                // Fall back to a asking for username and password.
+                // ...
+            }
+        }
+    }
+    
 }
 
+//STEP 2 FACE ID
+/// The available states of being logged in or not.
+enum AuthenticationState
+{
+    case loggedin, loggedout
+}
